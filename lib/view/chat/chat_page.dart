@@ -18,10 +18,14 @@ class _ChatPageState extends State<ChatPage> {
   final chatService _chatService = chatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final ScrollController _scrollController = ScrollController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   void sendMessage() async {
+      final query = await _firestore
+          .collection('user')
+          .get();
     if (_messageController.text.trim().isNotEmpty) {
-      await _chatService.sendMessage(widget.userId, _messageController.text.trim());
+      await _chatService.sendMessage(widget.userId, _messageController.text.trim(),query.);
       _messageController.clear();
       _scrollToBottom();
     }
@@ -42,8 +46,13 @@ class _ChatPageState extends State<ChatPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.userEmail),
+      backgroundColor: Colors.grey.shade50,
+      appBar: AppBar(automaticallyImplyLeading: false,
+        title: Row(
+          children: [
+            Text(widget.userEmail,style: const TextStyle(color: Colors.white,fontWeight: FontWeight.w500)),
+          ],
+        ), backgroundColor: Colors.blueGrey.shade300,
       ),
       body: Column(
         children: [
@@ -89,7 +98,7 @@ class _ChatPageState extends State<ChatPage> {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
 
     bool isSender = data['senderId'] == _auth.currentUser!.uid;
-
+print('message item data $data');
     return Align(
       alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -105,7 +114,7 @@ class _ChatPageState extends State<ChatPage> {
           isSender ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Text(
-              data['senderEmail'],
+              isSender ? "Me" : data['username'],
               style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 4),

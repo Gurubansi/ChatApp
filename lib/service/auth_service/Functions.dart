@@ -11,45 +11,105 @@ class Functions {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> signUpFunction({required BuildContext context,required String email,required String password}) async {
-    if( email.isEmpty && password.isEmpty){
+  Future<bool> isUsernameAvailable(String username) async {
+    final query = await _firestore
+        .collection('user')
+        .where('username', isEqualTo: username)
+        .get();
+    return query.docs.isEmpty;
+  }
+
+  Future<void> signUpFunction({
+    required BuildContext context,
+    required String email,
+    required String password,
+    required String username,
+  }) async {
+    if (email.isEmpty || password.isEmpty || username.isEmpty) {
       Fluttertoast.showToast(msg: "Enter Required Fields..!");
+      return;
     }
-    else{
-      UserCredential userCredential;
-      try{
-        userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: password);
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SignInScreen(),));
 
-        _firestore.collection('user').doc(userCredential.user!.uid).set({'uid':userCredential.user!.uid,'email':email});
+    // Check if username is available
+    bool isAvailable = await isUsernameAvailable(username);
+    if (!isAvailable) {
+      Fluttertoast.showToast(msg: "Username is already taken.");
+      return;
+    }
 
+    try {
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password.trim(),
+      );
 
+      // Update displayName in Firebase Authentication
+      await userCredential.user?.updateProfile(displayName: username);
+      await userCredential.user?.reload();
+
+      // Save user data in Firestore
+      await _firestore.collection('user').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'email': email,
+        'username': username,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      Fluttertoast.showToast(msg: "Sign Up Successful!");
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SignInScreen()),
+      );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'weak-password':
+          errorMessage = "The password provided is too weak.";
+          break;
+        case 'email-already-in-use':
+          errorMessage = "The account already exists for that email.";
+          break;
+        case 'invalid-email':
+          errorMessage = "Invalid email format.";
+          break;
+        default:
+          errorMessage = "Sign-up failed: ${e.message}";
       }
-      on FirebaseException catch(e){
-        print(e);
-        Fluttertoast.showToast(msg: e.code.toString());
-      }
+      Fluttertoast.showToast(msg: errorMessage);
+      debugPrint("Sign-up error: $e");
+    } catch (e) {
+      Fluttertoast.showToast(msg: "An unexpected error occurred");
+      debugPrint("Sign-up error: $e");
     }
   }
 
-  Future<void> signIpFunction({required BuildContext context, required String email, required String password}) async {
+  Future<void> signInFunction({
+    required BuildContext context,
+    required String email,
+    required String password,
+  }) async {
     try {
       if (email.isEmpty || password.isEmpty) {
         Fluttertoast.showToast(msg: "Please enter email and password");
         return;
       }
 
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
-      /// add a new documents  for the user in user collection if it is  doesn't exits
-      _firestore.collection('user').doc(userCredential.user!.uid).set({'uid':userCredential.user!.uid,'email':email},SetOptions(merge: true));
-      // Successfully logged in
-      if (userCredential.user != null) {
-        Fluttertoast.showToast(msg: "Login Successfully...");
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ChatHomeScreen(),));
-      }
+
+      // Ensure user data exists in Firestore (merge to avoid overwriting username)
+      await _firestore.collection('user').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'email': email,
+      }, SetOptions(merge: true));
+
+      Fluttertoast.showToast(msg: "Login Successfully...");
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatHomeScreen()),
+      );
     } on FirebaseAuthException catch (e) {
       String errorMessage;
       switch (e.code) {
@@ -69,17 +129,86 @@ class Functions {
           errorMessage = "Login failed: ${e.message}";
       }
       Fluttertoast.showToast(msg: errorMessage);
+      debugPrint("Login error: $e");
     } catch (e) {
       Fluttertoast.showToast(msg: "An unexpected error occurred");
       debugPrint("Login error: $e");
     }
   }
 
+  Future<void> updateUsername({
+    required BuildContext context,
+    required String newUsername,
+    required String email,
+    required String password,
+  }) async {
+    if (newUsername.isEmpty) {
+      Fluttertoast.showToast(msg: "Please enter a username");
+      return;
+    }
+
+    // Check if username is available
+    bool isAvailable = await isUsernameAvailable(newUsername);
+    if (!isAvailable) {
+      Fluttertoast.showToast(msg: "Username is already taken.");
+      return;
+    }
+
+    try {
+      User? user = _auth.currentUser;
+      if (user == null) {
+        Fluttertoast.showToast(msg: "No user is signed in.");
+        return;
+      }
+
+      // Re-authenticate user
+      AuthCredential credential = EmailAuthProvider.credential(
+        email: email.trim(),
+        password: password.trim(),
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      // Update displayName in Firebase Authentication
+      await user.updateProfile(displayName: newUsername);
+      await user.reload();
+
+      // Update username in Firestore
+      await _firestore.collection('user').doc(user.uid).update({
+        'username': newUsername,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      Fluttertoast.showToast(msg: "Username updated successfully!");
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'wrong-password':
+          errorMessage = "Incorrect password";
+          break;
+        case 'invalid-email':
+          errorMessage = "Invalid email format";
+          break;
+        case 'user-not-found':
+          errorMessage = "User not found";
+          break;
+        default:
+          errorMessage = "Update failed: ${e.message}";
+      }
+      Fluttertoast.showToast(msg: errorMessage);
+      debugPrint("Update username error: $e");
+    } catch (e) {
+      Fluttertoast.showToast(msg: "An unexpected error occurred");
+      debugPrint("Update username error: $e");
+    }
+  }
+
   Future<void> signOut(BuildContext context) async {
     await _googleSignIn.signOut();
     await _auth.signOut();
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => SignInScreen(),));
+    Fluttertoast.showToast(msg: "Signed out successfully");
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => SignInScreen()),
+    );
   }
-
 }
-

@@ -124,7 +124,7 @@ class SignUpScreen extends StatelessWidget {
                           functions.signUpFunction(
                             email: value.mailController.text,
                             password: value.passwordController.text,
-                            context: context,
+                            context: context, username: value.nameController.text,
                           );
                         }
                       },

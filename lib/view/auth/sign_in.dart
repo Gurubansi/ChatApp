@@ -149,7 +149,7 @@ class SignInScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         if(_formKey.currentState!.validate()) {
-                          functions.signIpFunction(context: context,
+                          functions.signInFunction(context: context,
                               email: value.mailController.text,
                               password: value.passwordController.text);
                         }},

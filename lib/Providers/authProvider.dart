@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthProvider extends ChangeNotifier {
   final mailController = TextEditingController();
+  final nameController = TextEditingController(text: 'Akash B');
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
