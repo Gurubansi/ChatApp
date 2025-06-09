@@ -5,11 +5,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Functions {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<String?> getUserId()async{
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('userId');
+  }
+
 
   Future<bool> isUsernameAvailable(String username) async {
     final query = await _firestore
@@ -98,8 +105,10 @@ class Functions {
         email: email.trim(),
         password: password.trim(),
       );
-
-      // Ensure user data exists in Firestore (merge to avoid overwriting username)
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', userCredential.user!.uid.toString());
+      String? userId = await prefs.getString('userId');
+      print("User Id ====>> $userId");
       await _firestore.collection('user').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'email': email,
@@ -205,6 +214,8 @@ class Functions {
   Future<void> signOut(BuildContext context) async {
     await _googleSignIn.signOut();
     await _auth.signOut();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
     Fluttertoast.showToast(msg: "Signed out successfully");
     Navigator.pushReplacement(
       context,

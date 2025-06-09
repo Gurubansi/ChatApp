@@ -4,19 +4,26 @@ import 'package:chat_app/view/auth/SocialButton.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     final _formKey = GlobalKey<FormState>();
     final Functions functions = Functions();
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           child: Consumer<AuthProvider>(builder: (context, value, child) {
+            value.clearField();
             return Form(
               key: _formKey,
               child: Column(
@@ -37,7 +44,26 @@ class SignUpScreen extends StatelessWidget {
                         style: TextStyle(fontSize: 16, color: Colors.grey[600])),
                   ),
                   const SizedBox(height: 40),
-
+                  Text('Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700])),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: value.nameController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your name',
+                      prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[600]),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (val) {
+                      if (val == null || val.isEmpty) return 'Please enter your email';
+                      if (!RegExp(r'\S+@\S+\.\S+').hasMatch(val)) return 'Enter a valid email';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
                   // Email
                   Text('Email', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700])),
                   const SizedBox(height: 8),

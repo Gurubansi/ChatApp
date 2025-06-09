@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthProvider extends ChangeNotifier {
   final mailController = TextEditingController();
-  final nameController = TextEditingController(text: 'Akash B');
+  final nameController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
@@ -17,6 +18,12 @@ class AuthProvider extends ChangeNotifier {
   bool get isPasswordVisible => _isPasswordVisible;
   bool get isConfirmPasswordVisible => _isConfirmPasswordVisible;
 
+  void clearField() {
+    nameController.clear();
+    confirmPasswordController.clear();
+    mailController.clear();
+    passwordController.clear();
+  }
   void togglePasswordVisibility() {
     _isPasswordVisible = !_isPasswordVisible;
     notifyListeners();
@@ -47,7 +54,15 @@ class AuthProvider extends ChangeNotifier {
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
       /// add a new documents  for the user in user collection if it is  doesn't exits
-      _firestore.collection('user').doc(userCredential.user!.uid).set({'uid':userCredential.user!.uid,'email':userCredential.user!.email},SetOptions(merge: true));
+      _firestore.collection('user').doc(userCredential.user!.uid).set(
+          {'uid':userCredential.user!.uid,
+            'email':userCredential.user!.email,
+            'username':userCredential.user!.displayName
+          },SetOptions(merge: true));
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', userCredential.user!.uid.toString());
+      String? userId = await prefs.getString('userId');
+      print("User Id ====>> $userId");
       return userCredential.user;
     } catch (e) {
       print("Google Sign-In error: $e");

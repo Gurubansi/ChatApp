@@ -7,6 +7,33 @@ class chatService extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Get current user info
+  Future<Map<String, dynamic>?> getCurrentUserDetails() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null) {
+      final uid = currentUser.uid;
+      final userDoc = await FirebaseFirestore.instance
+          .collection('user')
+          .doc(uid)
+          .get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data();
+        final username = data?['username'];
+        print('Current user username: $username');
+        return data;
+      } else {
+        print('User document not found');
+        return null;
+      }
+    } else {
+      print('No user is logged in');
+      return null;
+    }
+  }
+
+
   /// send message
   Future<void> sendMessage(String receiverId, String message,userName) async {
     /// get current user info

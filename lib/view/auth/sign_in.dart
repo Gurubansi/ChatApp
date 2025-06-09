@@ -102,13 +102,13 @@ class SignInScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: value.passwordController,
-                    obscureText: true,
+                    obscureText: value.isPasswordVisible,
                     decoration: InputDecoration(
                       hintText: '••••••••',
                       prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[600]),
                       suffixIcon: IconButton(
-                        icon: Icon(Icons.visibility_outlined, color: Colors.grey[600]),
-                        onPressed: () {},
+                        icon: Icon(value.isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+                        onPressed: value.togglePasswordVisibility,
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
