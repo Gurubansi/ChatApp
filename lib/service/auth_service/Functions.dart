@@ -6,17 +6,41 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
+Future<String?> handleBackgroudMessage(RemoteMessage message) async {
+  print("tittle ${message.notification?.title}");
+  print("body ${message.notification?.body}");
+  print("playload ${message.notification?.body}");
+}
 class Functions {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _firebaseMsg = FirebaseMessaging.instance;
 
   Future<String?> getUserId()async{
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('userId');
   }
 
+  Future<void> initNotification()async{
+    await _firebaseMsg.requestPermission();
+    final token = await _firebaseMsg.getToken();
+    print("messaging token $token");
+    FirebaseMessaging.onBackgroundMessage(handleBackgroudMessage);
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Received a message in foreground: ${message.notification?.title}');
+      // Optionally show local notification
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Notification clicked!');
+      // Navigate to chat screen or relevant page
+    });
+
+  }
 
   Future<bool> isUsernameAvailable(String username) async {
     final query = await _firestore

@@ -1,4 +1,5 @@
 import 'package:chat_app/Providers/authProvider.dart';
+import 'package:chat_app/service/auth_service/Functions.dart';
 import 'package:chat_app/view/auth/sign_in.dart';
 import 'package:chat_app/view/flash/flash_screen.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ void main() async{
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await Functions().initNotification();
   runApp(MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => AuthProvider(),)

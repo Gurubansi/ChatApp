@@ -60,6 +60,7 @@ dev_dependencies:
   emoji_picker_flutter: ^4.3.0
   shared_preferences: ^2.5.3
   get:
+  flutter_local_notifications: ^19.2.1
 
 
 flutter_launcher_icons:
